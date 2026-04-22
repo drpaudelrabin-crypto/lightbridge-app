@@ -9,12 +9,41 @@
   <style>
     body { font-family: Arial; padding:20px; background:#f5f5f5; }
     h1 { color:#222; }
-    .card { background:white; padding:20px; margin:15px 0; border-radius:12px; }
-    input { display:block; margin:6px 0; padding:8px; width:220px; }
-    button { padding:10px 20px; background:gold; border:none; border-radius:8px; margin:5px; cursor:pointer; }
+
+    .card {
+      background:white;
+      padding:20px;
+      margin:15px 0;
+      border-radius:12px;
+      border:1px solid #eee;
+    }
+
+    input, textarea {
+      display:block;
+      margin:6px 0;
+      padding:8px;
+      width:240px;
+    }
+
+    button {
+      padding:10px 20px;
+      background:gold;
+      border:none;
+      border-radius:8px;
+      margin:5px;
+      cursor:pointer;
+    }
+
     .good { color:green; }
     .warn { color:orange; }
     .bad { color:red; }
+
+    #patientList p {
+      background:#fafafa;
+      padding:6px;
+      border-radius:6px;
+      cursor:pointer;
+    }
   </style>
 </head>
 
@@ -45,9 +74,14 @@
 <input id="muscle" placeholder="Muscle Mass">
 </div>
 
+<div class="card">
+<h2>Clinical Notes</h2>
+<textarea id="notes" placeholder="SOAP Notes"></textarea>
+</div>
+
 <button onclick="calculate()">Analyze</button>
 <button onclick="savePatient()">Save Patient</button>
-<button onclick="loadPatient()">Load Patient</button>
+<button onclick="loadPatients()">Show Patients</button>
 <button onclick="window.print()">Download PDF</button>
 
 <div class="card">
@@ -62,7 +96,18 @@
 <div id="insights"></div>
 </div>
 
+<div class="card">
+<h2>Patient List</h2>
+<div id="patientList"></div>
+</div>
+
+<div class="card">
+<h2>Visit History</h2>
+<div id="history"></div>
+</div>
+
 <script>
+
 let chart;
 
 function val(id){ return Number(document.getElementById(id).value || 0); }
@@ -80,8 +125,8 @@ function calculate(){
   let fat = val("fat");
   let visceral = val("visceral");
 
-  let homa = (glucose && insulin) ? (glucose*insulin/405).toFixed(2) : "-";
-  let ratio = (trig && hdl) ? (trig/hdl).toFixed(2) : "-";
+  let homa = glucose && insulin ? (glucose*insulin/405).toFixed(2) : "-";
+  let ratio = trig && hdl ? (trig/hdl).toFixed(2) : "-";
 
   let score = 100;
 
@@ -93,43 +138,23 @@ function calculate(){
   if(hba1c > 5.6) score -= 10;
   if(ldl > 130) score -= 10;
 
-  let message = "";
-  let color = "green";
-
-  if(score >= 85){
-    message = "🟢 Excellent Health Profile";
-  } else if(score >= 70){
-    message = "🟡 Early Risk – Preventive care recommended";
-    color = "orange";
-  } else {
-    message = "🔴 High Risk – Needs medical attention";
-    color = "red";
-  }
+  let message = score >= 85 ? "🟢 Excellent"
+              : score >= 70 ? "🟡 Early Risk"
+              : "🔴 Needs Attention";
 
   document.getElementById("homa").innerHTML = "HOMA-IR: " + homa;
   document.getElementById("ratio").innerHTML = "TG/HDL: " + ratio;
-  document.getElementById("score").innerHTML =
-    `<span style="color:${color}; font-size:22px;">
-      Health Score: ${score}/100 <br>${message}
-    </span>`;
+  document.getElementById("score").innerHTML = "Score: " + score + " | " + message;
 
   let insights = [];
 
-  if(homa > 2) insights.push("⚠️ Insulin resistance");
-  if(fat > 30) insights.push("⚠️ High body fat");
-  if(visceral > 10) insights.push("🔴 Visceral fat risk");
-  if(ratio > 3) insights.push("⚠️ Cardiometabolic risk");
-  if(crp > 3) insights.push("🔴 Inflammation");
-
-  if(insights.length === 0) insights.push("🟢 Stable");
-
-  let summary = score >= 85 ? "Healthy profile"
-              : score >= 70 ? "Early imbalance"
-              : "Needs medical attention";
+  if(homa > 2) insights.push("Insulin resistance");
+  if(fat > 30) insights.push("High body fat");
+  if(visceral > 10) insights.push("Visceral fat risk");
+  if(crp > 3) insights.push("Inflammation");
 
   document.getElementById("insights").innerHTML =
-    insights.map(i=>"<p>"+i+"</p>").join("") +
-    `<hr><p><b>Summary:</b> ${summary}</p>`;
+    insights.map(i=>"<p>"+i+"</p>").join("");
 
   drawChart(score);
 }
@@ -138,12 +163,12 @@ function drawChart(score){
   if(chart) chart.destroy();
 
   chart = new Chart(document.getElementById("chart"), {
-    type: 'doughnut',
-    data: {
-      labels: ["Health","Risk"],
-      datasets: [{
-        data: [score, 100-score],
-        backgroundColor: ["green","lightgray"]
+    type:'doughnut',
+    data:{
+      labels:["Health","Risk"],
+      datasets:[{
+        data:[score,100-score],
+        backgroundColor:["green","lightgray"]
       }]
     }
   });
@@ -151,27 +176,49 @@ function drawChart(score){
 
 function savePatient(){
   let name = document.getElementById("name").value;
-  let data = {
+
+  let visit = {
+    date: new Date().toLocaleString(),
     glucose: val("glucose"),
-    insulin: val("insulin")
+    insulin: val("insulin"),
+    fat: val("fat"),
+    notes: document.getElementById("notes").value
   };
 
-  localStorage.setItem(name, JSON.stringify(data));
+  let history = JSON.parse(localStorage.getItem(name) || "[]");
+  history.push(visit);
+
+  localStorage.setItem(name, JSON.stringify(history));
+
   alert("Saved!");
 }
 
-function loadPatient(){
-  let name = prompt("Enter name");
-  let data = localStorage.getItem(name);
+function loadPatients(){
+  let list = document.getElementById("patientList");
+  list.innerHTML = "";
 
-  if(data){
-    data = JSON.parse(data);
-    document.getElementById("glucose").value = data.glucose;
-    document.getElementById("insulin").value = data.insulin;
-    alert("Loaded!");
-  } else {
-    alert("No data found");
+  for(let i=0;i<localStorage.length;i++){
+    let key = localStorage.key(i);
+    list.innerHTML += `<p onclick="loadOne('${key}')">${key}</p>`;
   }
+}
+
+function loadOne(name){
+  let history = JSON.parse(localStorage.getItem(name) || "[]");
+
+  let html="";
+  history.forEach(v=>{
+    html += `
+    <div class="card">
+      <b>Date:</b> ${v.date}<br>
+      <b>Glucose:</b> ${v.glucose}<br>
+      <b>Body Fat:</b> ${v.fat}<br>
+      <b>Notes:</b> ${v.notes}
+    </div>
+    `;
+  });
+
+  document.getElementById("history").innerHTML = html;
 }
 </script>
 
