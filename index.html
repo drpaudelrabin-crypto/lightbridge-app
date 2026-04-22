@@ -1,42 +1,98 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>LightBridge Health</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="style.css">
+  <title>LightBridge Health</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: Arial; padding:20px; background:#fafafa;}
+    h1 { color:#222;}
+    .card { background:white; padding:20px; margin:15px 0; border-radius:12px;}
+    input { display:block; margin:6px 0; padding:8px; width:200px;}
+    button { padding:10px 20px; background:gold; border:none; border-radius:8px;}
+  </style>
 </head>
+
 <body>
-    <h1>✨ LightBridge Health Dashboard</h1>
-    
-    <div class="card">
-        <h2>Labs</h2>
-        <input placeholder="Glucose" id="glucose">
-        <input placeholder="Insulin" id="insulin">
-        <input placeholder="HbA1c" id="hba1c">
-        <input placeholder="LDL" id="ldl">
-        <input placeholder="HDL" id="hdl">
-        <input placeholder="Triglycerides" id="trig">
-        <input placeholder="hsCRP" id="crp">
-    </div>
 
-    <div class="card">
-        <h2>Body Composition</h2>
-        <input placeholder="Body Fat %" id="fat">
-        <input placeholder="Visceral Fat" id="visceral">
-        <input placeholder="Muscle Mass" id="muscle">
-    </div>
+<h1>✨ LightBridge Health Dashboard</h1>
 
-    <button onclick="calculate()">Analyze</button>
+<div class="card">
+<h2>Labs</h2>
+<input placeholder="Glucose" id="glucose">
+<input placeholder="Insulin" id="insulin">
+<input placeholder="HbA1c" id="hba1c">
+<input placeholder="LDL" id="ldl">
+<input placeholder="HDL" id="hdl">
+<input placeholder="Triglycerides" id="trig">
+<input placeholder="hsCRP" id="crp">
+</div>
 
-    <div class="card">
-        <h2>Results</h2>
-        <p id="homa"></p>
-        <p id="ratio"></p>
-        <p id="score"></p>
-        <div id="insights"></div>
-    </div>
+<div class="card">
+<h2>Body Composition</h2>
+<input placeholder="Body Fat %" id="fat">
+<input placeholder="Visceral Fat" id="visceral">
+<input placeholder="Muscle Mass" id="muscle">
+</div>
 
-    <script src="script.js"></script>
+<button onclick="calculate()">Analyze</button>
+
+<div class="card">
+<h2>Results</h2>
+<p id="homa"></p>
+<p id="ratio"></p>
+<p id="score"></p>
+<div id="insights"></div>
+</div>
+
+<script>
+function val(id){ return Number(document.getElementById(id).value || 0); }
+
+function calculate(){
+
+  let glucose = val("glucose");
+  let insulin = val("insulin");
+  let hba1c = val("hba1c");
+  let ldl = val("ldl");
+  let hdl = val("hdl");
+  let trig = val("trig");
+  let crp = val("crp");
+
+  let fat = val("fat");
+  let visceral = val("visceral");
+  let muscle = val("muscle");
+
+  let homa = (glucose && insulin) ? (glucose*insulin/405).toFixed(2) : "-";
+  let ratio = (trig && hdl) ? (trig/hdl).toFixed(2) : "-";
+
+  let score = 100;
+
+  if(homa > 2) score -= 20;
+  if(fat > 30) score -= 15;
+  if(visceral > 10) score -= 20;
+  if(ratio > 3) score -= 10;
+  if(crp > 3) score -= 10;
+  if(hba1c > 5.6) score -= 10;
+  if(ldl > 130) score -= 10;
+
+  let insights = [];
+
+  if(homa > 2) insights.push("⚠️ Insulin resistance");
+  if(fat > 30) insights.push("⚠️ High body fat");
+  if(visceral > 10) insights.push("🔴 Visceral fat risk");
+  if(ratio > 3) insights.push("⚠️ Cardiometabolic risk");
+  if(crp > 3) insights.push("🔴 Inflammation");
+
+  if(insights.length === 0) insights.push("🟢 Stable health profile");
+
+  document.getElementById("homa").innerHTML = "HOMA-IR: " + homa;
+  document.getElementById("ratio").innerHTML = "TG/HDL: " + ratio;
+  document.getElementById("score").innerHTML = "Health Score: " + score + "/100";
+
+  let html="";
+  insights.forEach(i => html += "<p>"+i+"</p>");
+  document.getElementById("insights").innerHTML = html;
+}
+</script>
+
 </body>
 </html>
