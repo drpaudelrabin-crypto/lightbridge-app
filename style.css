@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LightBridge Health</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+<h1>✨ LightBridge Health Dashboard</h1>
+
+<div class="card">
+<h2>Labs</h2>
+<input placeholder="Glucose" id="glucose">
+<input placeholder="Insulin" id="insulin">
+<input placeholder="HbA1c" id="hba1c">
+<input placeholder="LDL" id="ldl">
+<input placeholder="HDL" id="hdl">
+<input placeholder="Triglycerides" id="trig">
+<input placeholder="hsCRP" id="crp">
+</div>
+
+<div class="card">
+<h2>Body Composition</h2>
+<input placeholder="Body Fat %" id="fat">
+<input placeholder="Visceral Fat" id="visceral">
+<input placeholder="Muscle Mass" id="muscle">
+</div>
+
+<button onclick="calculate()">Analyze</button>
+
+<div class="card">
+<h2>Results</h2>
+<p id="homa"></p>
+<p id="ratio"></p>
+<p id="score"></p>
+<div id="insights"></div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
